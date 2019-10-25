@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <style type="text/css">
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            font-family: "微软雅黑";
+        }
+
+        #allmap {
+            width: 70%;
+            height: 100%;
+            overflow: hidden;
+            float: left;
+        }
+
+        #result {
+            float: left;
+            margin-left: 100px;
+            font-size: 12px;
+        }
+
+        #result div {
+            margin-top: 50px;
+        }
+
+        dl, dt, dd, ul, li {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        p {
+            font-size: 12px;
+        }
+
+        dt {
+            font-size: 14px;
+            font-family: "微软雅黑";
+            font-weight: bold;
+            border-bottom: 1px dotted #000;
+            padding: 5px 0 5px 5px;
+            margin: 5px 0;
+        }
+
+        dd {
+            padding: 5px 0 0 5px;
+        }
+
+        li {
+            line-height: 28px;
+        }
+
+        input {
+            font-size: 40px;
+        }
+    </style>
+    <script type="text/javascript"
+            src="https://api.map.baidu.com/api?v=2.0&ak=1ZmLRdlNeqSAQoQo576xTUArl9kDvkLv"></script>
+    <!--加载鼠标绘制工具-->
+    <script type="text/javascript"
+            src="https://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js"></script>
+    <link rel="stylesheet" href="https://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.css"/>
+    <!--加载检索信息窗口-->
+    <script type="text/javascript"
+            src="https://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.js"></script>
+    <link rel="stylesheet" href="https://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.css"/>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <title>电子围栏</title>
+</head>
+<body>
+<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+    <div id="map"
+         style="height:100%;width:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
+</div>
+<div id="result">
+    <div><input type="button" value="获取绘制的覆盖物个数" onclick="alert(overlays.length)"/></div>
+    <div><input type="button" value="获取覆盖物坐标" onclick="getPath()"/></div>
+    <div><input type="button" value="绘制矩形" onclick="drawPolygon()"/></div>
+    <div><input type="button" value="加载数据库数据绘制" onclick="loadDB()"/></div>
+    <div><input type="button" value="清除所有覆盖物" onclick="clearAll()"/></div>
+    <div id="dbShapeNames">
+
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    // 百度地图API功能
+    var map = new BMap.Map('map');
+    var poi = new BMap.Point(116.4039444923, 39.9418077798);
+    map.centerAndZoom(poi, 16);
+    // map.enableScrollWheelZoom(); 禁用鼠标滚动缩放
+    var overlays = [];
+    var overlaycomplete = function (e) {
+        overlays.push(e.overlay);
+    };
+    var styleOptions = {
+        strokeColor: "red",    //边线颜色。
+        fillColor: "red",      //填充颜色。当参数为空时，圆形将没有填充效果。
+        strokeWeight: 3,       //边线的宽度，以像素为单位。
+        strokeOpacity: 0.8,	   //边线透明度，取值范围0 - 1。
+        fillOpacity: 0.6,      //填充的透明度，取值范围0 - 1。
+        strokeStyle: 'solid' //边线的样式，solid或dashed。
+    };
+    //实例化鼠标绘制工具
+    var drawingManager = new BMapLib.DrawingManager(map, {
+        isOpen: false, //是否开启绘制模式
+        enableDrawingTool: true, //是否显示工具栏
+        drawingToolOptions: {
+            // anchor: BMAP_ANCHOR_TOP_RIGHT, //位置,默认左上角
+            offset: new BMap.Size(5, 5), //偏离值
+            drawingModes: [
+                // BMAP_DRAWING_MARKER, //点
+                BMAP_DRAWING_CIRCLE, //圆
+                // BMAP_DRAWING_POLYLINE,//线
+                BMAP_DRAWING_POLYGON, //多边形
+                BMAP_DRAWING_RECTANGLE //矩形
+            ]
+        },
+        circleOptions: styleOptions, //圆的样式
+        // polylineOptions: styleOptions, //线的样式
+        polygonOptions: styleOptions, //多边形的样式
+        rectangleOptions: styleOptions //矩形的样式
+    });
+    //添加鼠标绘制工具监听事件，用于获取绘制结果
+    drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+
+    function clearAll() {
+        for (var i = 0; i < overlays.length; i++) {
+            map.removeOverlay(overlays[i]);
+        }
+        overlays.length = 0
+    }
+
+    //右上角缩放
+    var top_right_navigation = new BMap.NavigationControl({
+        anchor: BMAP_ANCHOR_TOP_RIGHT,
+        type: BMAP_NAVIGATION_CONTROL_SMALL
+    }); //右上角，仅包含平移和缩放按钮
+    map.addControl(top_right_navigation);
+
+    //获取坐标
+    var getPath = function () {
+        if (overlays.length == 0) {
+            alert("请先绘制");
+            return;
+        }
+        alert("控制台日志查看");
+        overlays.forEach(function (l) {
+            console.log("---");
+            console.log(l.getPath());
+        })
+    };
+
+    //draw 绘制矩形
+    function drawPolygon() {
+        let point = [
+            {
+                lng: "116.291611",
+                lat: "40.061946"
+            },
+            {
+                lng: "116.291539",
+                lat: "40.059295"
+            },
+            {
+                lng: "116.296102",
+                lat: "40.057252"
+            },
+            {
+                lng: "116.303109",
+                lat: "40.060179"
+            }
+        ];
+        let polArry = [];
+        point.forEach(function (p) {
+            polArry.push(new BMap.Point(p.lng, p.lat));
+        });
+        let polygon = new BMap.Polygon(polArry, styleOptions);
+        map.addOverlay(polygon);
+    }
+
+    var loadDB = function () {
+        dbData.forEach(function (shape) {
+            let polArry = [];
+            shape.points.forEach(function (p) {
+                polArry.push(new BMap.Point(p.lng, p.lat));
+            });
+            let polygon = new BMap.Polygon(polArry, styleOptions);
+            map.addOverlay(polygon);
+            overlays.push(polygon);
+            let fp = shape.points[0];//每个形状的第一个点
+            //添加区域说明
+            $("#dbShapeNames").append("<div onclick='gotTo1(" + fp.lng + "," + fp.lat + ")'>" + shape.name + "</div>")
+        });
+        //定位地图到指定点。可以用作点击名称的时候跳转(这里定位到第一个点)
+        var p = dbData[0].points[0];
+        gotTo(p)
+    };
+
+    //跳转到指定的点
+    var gotTo = function (p) {
+        gotTo1(p.lng, p.lat);
+    };
+
+    //跳转到指定的点
+    var gotTo1 = function (lng, lat) {
+        var theTarget = new BMap.Point(lng, lat);
+        map.panTo(theTarget);
+    };
+
+    //这个数据从db获取
+    var dbData = [
+            //第一个覆盖物
+            {
+                "name": "第一个区域",
+                "points": [{"lng": 116.567858, "lat": 39.794551}, {"lng": 116.572817, "lat": 39.794551}, {
+                    "lng": 116.572817,
+                    "lat": 39.791196
+                }, {
+                    "lng":
+                        116.567858, "lat":
+                        39.791196
+                }]
+            }
+            ,
+            //第二个覆盖物
+            {
+                "name": "第二个区域",
+                "points": [{"lng": 116.563456, "lat": 39.79190165806948}, {
+                    "lng": 116.56321929267068,
+                    "lat": 39.79188734357888
+                }, {"lng": 116.56298841415095, "lat": 39.791844752594955}, {
+                    "lng": 116.56276904969727,
+                    "lat": 39.79177493390021
+                }, {"lng": 116.56256660099787, "lat": 39.79167960674226}, {
+                    "lng": 116.56238605314456,
+                    "lat": 39.79156111849244
+                }, {"lng": 116.56223185187072, "lat": 39.791422386835926}, {
+                    "lng": 116.56210779407748,
+                    "lat": 39.79126682791774
+                }, {"lng": 116.56201693434632, "lat": 39.79109827221507}, {
+                    "lng": 116.56196150973821,
+                    "lat": 39.790920870208325
+                }, {"lng": 116.56194288472973, "lat": 39.790738990174795}, {
+                    "lng": 116.5619615176409,
+                    "lat": 39.790557110622146
+                }, {"lng": 116.56201694937812, "lat": 39.79037971001097}, {
+                    "lng": 116.5621078147669,
+                    "lat": 39.790211156481945
+                }, {"lng": 116.56223187619261, "lat": 39.79005560030272}, {
+                    "lng": 116.56238607871816,
+                    "lat": 39.78991687168236
+                }, {"lng": 116.56256662531975, "lat": 39.78979838646869}, {
+                    "lng": 116.56276907038675,
+                    "lat": 39.789703062049696
+                }, {"lng": 116.56298842918271, "lat": 39.7896332455286}, {
+                    "lng": 116.56321930057337,
+                    "lat": 39.78959065594024
+                }, {"lng": 116.563456, "lat": 39.78957634193051}, {
+                    "lng": 116.56369269942664,
+                    "lat": 39.78959065594024
+                }, {"lng": 116.5639235708173, "lat": 39.7896332455286}, {
+                    "lng": 116.56414292961325,
+                    "lat": 39.789703062049696
+                }, {"lng": 116.56434537468026, "lat": 39.78979838646869}, {
+                    "lng": 116.56452592128184,
+                    "lat": 39.78991687168236
+                }, {"lng": 116.5646801238074, "lat": 39.79005560030272}, {
+                    "lng": 116.5648041852331,
+                    "lat": 39.790211156481945
+                }, {"lng": 116.56489505062189, "lat": 39.79037971001097}, {
+                    "lng": 116.56495048235911,
+                    "lat": 39.790557110622146
+                }, {"lng": 116.56496911527027, "lat": 39.790738990174795}, {
+                    "lng": 116.5649504902618,
+                    "lat": 39.790920870208325
+                }, {"lng": 116.56489506565369, "lat": 39.79109827221507}, {
+                    "lng": 116.56480420592253,
+                    "lat": 39.79126682791774
+                }, {"lng": 116.56468014812928, "lat": 39.791422386835926}, {
+                    "lng": 116.56452594685544,
+                    "lat": 39.79156111849244
+                }, {"lng": 116.56434539900215, "lat": 39.79167960674226}, {
+                    "lng": 116.56414295030274,
+                    "lat": 39.79177493390021
+                }, {"lng": 116.56392358584905, "lat": 39.791844752594955}, {
+                    "lng": 116.56369270732932,
+                    "lat": 39.79188734357888
+                }, {"lng": 116.563456, "lat": 39.79190165806948}]
+            }
+        ]
+    ;
+</script>
+</body>
+</html>
